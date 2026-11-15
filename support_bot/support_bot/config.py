@@ -3,7 +3,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _ROOT_ENV = Path(__file__).resolve().parents[2] / ".env"
@@ -14,7 +14,9 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=_ENV_FILE, env_file_encoding="utf-8", extra="ignore")
 
     bot_token: str = Field(validation_alias="SUPPORT_BOT_TOKEN")
-    admin_ids_raw: str = Field(default="", validation_alias="TYBEE_ADMIN_IDS")
+    admin_ids_raw: str = Field(
+        default="", validation_alias=AliasChoices("TYBEE_ADMIN_IDS", "TAIBI_ADMIN_ID", "ADMIN_IDS")
+    )
 
     postgres_host: str = Field(default="db", validation_alias="SUPPORT_POSTGRES_HOST")
     postgres_port: int = Field(default=5432, validation_alias="SUPPORT_POSTGRES_PORT")

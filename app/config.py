@@ -2,15 +2,19 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from pydantic import Field, field_validator
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
-    bot_token: str = Field(validation_alias="TYBEE_BOT_TOKEN")
-    admin_ids_raw: str = Field(default="", validation_alias="TYBEE_ADMIN_IDS")
+    bot_token: str = Field(
+        validation_alias=AliasChoices("TYBEE_BOT_TOKEN", "TAIBI_BOT_TOKEN", "BOT_TOKEN")
+    )
+    admin_ids_raw: str = Field(
+        default="", validation_alias=AliasChoices("TYBEE_ADMIN_IDS", "TAIBI_ADMIN_ID", "ADMIN_IDS")
+    )
 
     unban_fine_rub: int = 50
 
