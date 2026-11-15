@@ -65,7 +65,7 @@ async def run() -> None:
         format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
     )
     if not get_settings().admin_ids:
-        raise RuntimeError("Set at least one Telegram user id in SUPPORT_ADMIN_IDS")
+        raise RuntimeError("Set at least one Telegram user id in TYBEE_ADMIN_IDS")
     await init_models()
     await seed_staff()
 

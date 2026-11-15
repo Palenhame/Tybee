@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=_ENV_FILE, env_file_encoding="utf-8", extra="ignore")
 
     bot_token: str = Field(validation_alias="SUPPORT_BOT_TOKEN")
-    admin_ids_raw: str = Field(default="", validation_alias="SUPPORT_ADMIN_IDS")
+    admin_ids_raw: str = Field(default="", validation_alias="TYBEE_ADMIN_IDS")
     staff_ids_raw: str = Field(default="", validation_alias="SUPPORT_STAFF_IDS")
 
     postgres_host: str = Field(default="db", validation_alias="SUPPORT_POSTGRES_HOST")

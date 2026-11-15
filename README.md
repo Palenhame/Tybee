@@ -40,7 +40,7 @@ cp .env.example .env
 Заполните в нём:
 
 - `TYBEE_BOT_TOKEN` и `TYBEE_ADMIN_IDS`;
-- `SUPPORT_BOT_TOKEN`, `SUPPORT_ADMIN_IDS` и при необходимости `SUPPORT_STAFF_IDS`;
+- `SUPPORT_BOT_TOKEN` и при необходимости `SUPPORT_STAFF_IDS`;
 - настройки Robokassa и Avito, если они нужны.
 
 Настройки `POSTGRES_*` и `SUPPORT_POSTGRES_*` уже соответствуют Docker Compose.

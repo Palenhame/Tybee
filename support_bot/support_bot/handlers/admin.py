@@ -68,7 +68,7 @@ async def admin_toggle(call: CallbackQuery, bot: Bot, session: AsyncSession, use
         return
     telegram_id = int(call.data.split(":")[2])
     if repo.is_admin(telegram_id):
-        await call.answer("Администратора из SUPPORT_ADMIN_IDS нельзя отключить", show_alert=True)
+        await call.answer("Администратора из TYBEE_ADMIN_IDS нельзя отключить", show_alert=True)
         return
     staff = await repo.get_staff(session, telegram_id)
     if staff is None:
