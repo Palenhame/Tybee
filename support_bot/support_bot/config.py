@@ -15,7 +15,6 @@ class Settings(BaseSettings):
 
     bot_token: str = Field(validation_alias="SUPPORT_BOT_TOKEN")
     admin_ids_raw: str = Field(default="", validation_alias="TYBEE_ADMIN_IDS")
-    staff_ids_raw: str = Field(default="", validation_alias="SUPPORT_STAFF_IDS")
 
     postgres_host: str = Field(default="db", validation_alias="SUPPORT_POSTGRES_HOST")
     postgres_port: int = Field(default=5432, validation_alias="SUPPORT_POSTGRES_PORT")
@@ -30,10 +29,6 @@ class Settings(BaseSettings):
     @property
     def admin_ids(self) -> list[int]:
         return self._ids(self.admin_ids_raw)
-
-    @property
-    def staff_ids(self) -> list[int]:
-        return self._ids(self.staff_ids_raw)
 
     @property
     def database_url(self) -> str:

@@ -104,7 +104,7 @@ async def list_recipient_ids(session: AsyncSession) -> list[int]:
 
 async def seed_staff() -> None:
     async with session_factory() as session:
-        for telegram_id in dict.fromkeys([*get_settings().admin_ids, *get_settings().staff_ids]):
+        for telegram_id in dict.fromkeys(get_settings().admin_ids):
             if await get_staff(session, telegram_id) is None:
                 session.add(Staff(telegram_id=telegram_id, display_name=f"Сотрудник #{telegram_id}"))
         await session.commit()
