@@ -21,6 +21,32 @@ engine = create_async_engine(_settings.database_url, pool_pre_ping=True)
 session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 _COLUMN_PATCHES = (
+    "ALTER TABLE staff ADD COLUMN IF NOT EXISTS telegram_id BIGINT",
+    "ALTER TABLE staff ADD COLUMN IF NOT EXISTS display_name VARCHAR(80)",
+    "ALTER TABLE staff ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE",
+    "ALTER TABLE staff ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now()",
+    "ALTER TABLE staff ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now()",
+    """DO $$
+    BEGIN
+        IF EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'staff' AND column_name = 'id'
+        ) THEN
+            UPDATE staff SET telegram_id = id WHERE telegram_id IS NULL;
+        END IF;
+        IF EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'staff' AND column_name = 'name'
+        ) THEN
+            UPDATE staff SET display_name = name WHERE display_name IS NULL;
+        END IF;
+        UPDATE staff SET display_name = COALESCE(NULLIF(display_name, ''), 'Сотрудник');
+        UPDATE staff SET is_active = TRUE WHERE is_active IS NULL;
+        DELETE FROM staff a USING staff b
+        WHERE a.telegram_id = b.telegram_id AND a.ctid > b.ctid;
+    END
+    $$""",
+    "CREATE UNIQUE INDEX IF NOT EXISTS ix_staff_telegram_id ON staff (telegram_id)",
     "ALTER TABLE support_requests ADD COLUMN IF NOT EXISTS source VARCHAR(16) NOT NULL DEFAULT 'direct'",
     "ALTER TABLE support_requests ADD COLUMN IF NOT EXISTS channel VARCHAR(16) NOT NULL DEFAULT 'telegram'",
     "ALTER TABLE support_requests ADD COLUMN IF NOT EXISTS source_conversation_id BIGINT",
