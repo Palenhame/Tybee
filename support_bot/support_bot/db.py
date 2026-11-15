@@ -22,6 +22,7 @@ session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_comm
 
 _COLUMN_PATCHES = (
     "ALTER TABLE staff ADD COLUMN IF NOT EXISTS telegram_id BIGINT",
+    "ALTER TABLE staff ADD COLUMN IF NOT EXISTS tg_id BIGINT",
     "ALTER TABLE staff ADD COLUMN IF NOT EXISTS display_name VARCHAR(80)",
     "ALTER TABLE staff ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE",
     "ALTER TABLE staff ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now()",
@@ -42,10 +43,26 @@ _COLUMN_PATCHES = (
         END IF;
         UPDATE staff SET display_name = COALESCE(NULLIF(display_name, ''), 'Сотрудник');
         UPDATE staff SET is_active = TRUE WHERE is_active IS NULL;
+        UPDATE staff SET tg_id = telegram_id WHERE tg_id IS NULL;
         DELETE FROM staff a USING staff b
         WHERE a.telegram_id = b.telegram_id AND a.ctid > b.ctid;
     END
     $$""",
+    """CREATE OR REPLACE FUNCTION sync_staff_ids() RETURNS trigger AS $$
+    BEGIN
+        IF NEW.telegram_id IS NULL THEN
+            NEW.telegram_id = NEW.tg_id;
+        END IF;
+        IF NEW.tg_id IS NULL THEN
+            NEW.tg_id = NEW.telegram_id;
+        END IF;
+        RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql""",
+    "DROP TRIGGER IF EXISTS sync_staff_ids ON staff",
+    """CREATE TRIGGER sync_staff_ids
+    BEFORE INSERT OR UPDATE ON staff
+    FOR EACH ROW EXECUTE FUNCTION sync_staff_ids()""",
     "CREATE UNIQUE INDEX IF NOT EXISTS ix_staff_telegram_id ON staff (telegram_id)",
     "ALTER TABLE support_requests ADD COLUMN IF NOT EXISTS source VARCHAR(16) NOT NULL DEFAULT 'direct'",
     "ALTER TABLE support_requests ADD COLUMN IF NOT EXISTS channel VARCHAR(16) NOT NULL DEFAULT 'telegram'",
