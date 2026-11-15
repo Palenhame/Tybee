@@ -24,6 +24,7 @@ _COLUMN_PATCHES = (
     "ALTER TABLE staff ADD COLUMN IF NOT EXISTS telegram_id BIGINT",
     "ALTER TABLE staff ADD COLUMN IF NOT EXISTS tg_id BIGINT",
     "ALTER TABLE staff ADD COLUMN IF NOT EXISTS display_name VARCHAR(80)",
+    "ALTER TABLE staff ADD COLUMN IF NOT EXISTS name VARCHAR(80)",
     "ALTER TABLE staff ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE",
     "ALTER TABLE staff ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now()",
     "ALTER TABLE staff ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now()",
@@ -48,6 +49,25 @@ _COLUMN_PATCHES = (
         WHERE a.telegram_id = b.telegram_id AND a.ctid > b.ctid;
     END
     $$""",
+    """DO $$
+    DECLARE
+        legacy_column RECORD;
+    BEGIN
+        FOR legacy_column IN (
+            SELECT column_name FROM information_schema.columns
+            WHERE table_schema = 'public' AND table_name = 'staff'
+            AND column_name NOT IN (
+                'id', 'tg_id', 'telegram_id', 'display_name', 'is_active',
+                'created_at', 'updated_at'
+            )
+        ) LOOP
+            EXECUTE format(
+                'ALTER TABLE staff ALTER COLUMN %I DROP NOT NULL',
+                legacy_column.column_name
+            );
+        END LOOP;
+    END;
+    $$""",
     """CREATE OR REPLACE FUNCTION sync_staff_ids() RETURNS trigger AS $$
     BEGIN
         IF NEW.telegram_id IS NULL THEN
@@ -55,6 +75,12 @@ _COLUMN_PATCHES = (
         END IF;
         IF NEW.tg_id IS NULL THEN
             NEW.tg_id = NEW.telegram_id;
+        END IF;
+        IF NEW.display_name IS NULL THEN
+            NEW.display_name = NEW.name;
+        END IF;
+        IF NEW.name IS NULL THEN
+            NEW.name = NEW.display_name;
         END IF;
         RETURN NEW;
     END;
