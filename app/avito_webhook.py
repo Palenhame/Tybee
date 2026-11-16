@@ -27,6 +27,7 @@ from app.support.attachments import AVITO_IMAGE_LIMIT, StoredFile, discard
 logger = logging.getLogger(__name__)
 _RATE_WINDOW = 60
 _RATE_LIMIT = 120
+_RATE_MAX_KEYS = 4096
 _requests: dict[str, deque[float]] = defaultdict(deque)
 _webhook_concurrency = asyncio.Semaphore(20)
 WEBHOOK_ROUTE = "/avito/webhook/{secret}"
@@ -41,16 +42,42 @@ class ProfileRef:
     account_id: int | None
 
 
+def _rate_key(request: web.Request) -> str:
+    remote = request.remote or "unknown"
+    try:
+        address = ipaddress.ip_address(remote)
+    except ValueError:
+        return remote
+    if address.is_loopback:
+        forwarded = request.headers.get("X-Forwarded-For", "").split(",", 1)[0].strip()
+        if forwarded:
+            try:
+                return str(ipaddress.ip_address(forwarded))
+            except ValueError:
+                pass
+    return str(address)
+
+
+def _prune_rate_keys(now: float) -> None:
+    if len(_requests) <= _RATE_MAX_KEYS:
+        return
+    for key, attempts in list(_requests.items()):
+        if not attempts or attempts[-1] <= now - _RATE_WINDOW:
+            _requests.pop(key, None)
+    while len(_requests) > _RATE_MAX_KEYS:
+        _requests.pop(next(iter(_requests)))
+
+
 @web.middleware
 async def rate_limit(request: web.Request, handler) -> web.Response:
     now = time.monotonic()
-    key = request.remote or "unknown"
-    attempts = _requests[key]
+    attempts = _requests[_rate_key(request)]
     while attempts and attempts[0] <= now - _RATE_WINDOW:
         attempts.popleft()
     if len(attempts) >= _RATE_LIMIT:
         return web.json_response({"error": "rate limit exceeded"}, status=429)
     attempts.append(now)
+    _prune_rate_keys(now)
     return await handler(request)
 
 

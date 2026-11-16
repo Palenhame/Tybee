@@ -87,7 +87,7 @@ class Product(Base):
 
 
 class MysteryBox(Base):
-    """A Mystery Box variant offered to clients, managed via the /admin panel."""
+    """A Mystery Box variant offered to clients, managed via the staff panel."""
 
     __tablename__ = "mystery_boxes"
 

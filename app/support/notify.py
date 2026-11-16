@@ -62,7 +62,6 @@ async def send_notifications(notifications: list[Notification], cover_slugs: dic
 
 async def send_staff_messages(messages: list[tuple[int, str]]) -> None:
     """Plain service messages to employees (e.g. "your shift was ended")."""
-    settings = get_settings()
     token = login_bot_token()
     if not messages or not token:
         return

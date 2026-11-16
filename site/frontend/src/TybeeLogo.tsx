@@ -2,7 +2,7 @@ import { CSSProperties, useEffect, useRef, useState } from "react";
 
 /**
  * Official Tybee mascot cat and interactive Grinya components,
- * matching tybee.ru and examples/.
+ * matching tybee.ru and the public assets.
  */
 
 export function TybeeCat({
@@ -35,7 +35,7 @@ export function TybeeCat({
   );
 }
 
-/** Static vector Grinya pill cat icon from examples/Grinya.svg */
+/** Static vector Grinya pill cat icon from public/Grinya.svg */
 export function GrinyaCat({
   width = 36,
   height = 21,

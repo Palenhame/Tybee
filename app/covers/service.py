@@ -54,7 +54,7 @@ def _atomic_write(path: Path, data: bytes) -> None:
     try:
         with os.fdopen(fd, "wb") as handle:
             handle.write(data)
-        os.chmod(tmp, 0o644)
+        os.chmod(tmp, 0o600 if path.name == "config.yaml" else 0o644)
         os.replace(tmp, path)
     except BaseException:
         try:
@@ -254,6 +254,7 @@ def upgrade_config_keys(folders: Iterable[str | os.PathLike[str]] | None = None)
         except loader.CoverConfigError as exc:
             logger.warning("cover %s: config.yaml not upgraded: %s", folder.name, exc)
             continue
+        os.chmod(config_path, 0o600)
         added: list[str] = []
         for section in _UPGRADE_SECTIONS:
             current = data.get(section)

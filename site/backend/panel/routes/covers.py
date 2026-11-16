@@ -9,7 +9,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.covers import service, spec
-from app.covers.service import CoverError
 from app.db.models import Cover, Staff
 from panel import telegram
 from panel.audit import write_audit

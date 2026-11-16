@@ -19,6 +19,7 @@ from app.middlewares import DbSessionMiddleware
 from app.services.avito import close_avito
 from app.services.broadcast_worker import broadcast_worker
 from app.services.outbox import outbox_worker
+from app.support.attachments import secure_storage
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +67,7 @@ async def run() -> None:
     # New template keys (e.g. statuses added in ТЗ-2) must exist before the validator sees the covers.
     async with session_factory() as session:
         await upgrade_all_covers(session)
+    secure_storage()
 
     supervisor = Supervisor()
     supervisor_task = asyncio.create_task(supervisor.run(), name="covers-supervisor")

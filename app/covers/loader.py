@@ -495,7 +495,9 @@ def init_default_cover() -> bool:
             data = yaml.safe_load(handle)
         data["token"] = token
         folder.mkdir(parents=True, exist_ok=True)
-        config_path.write_text(dump_config(data), encoding="utf-8")
+        fd = os.open(config_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(dump_config(data))
         created = True
     banners = folder / "banners"
     banners.mkdir(parents=True, exist_ok=True)

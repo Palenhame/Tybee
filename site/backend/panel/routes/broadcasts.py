@@ -15,7 +15,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.catalog.broadcast import IMAGE_MAX_BYTES, check_body, count_recipients, resolve_cover_ids
 from app.catalog.common import CatalogError
-from app.config import get_settings
 from app.db.models import Broadcast, Cover, Staff
 from app.support import attachments as files
 from panel.audit import write_audit

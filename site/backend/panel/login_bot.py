@@ -9,7 +9,6 @@ from aiogram.filters import CommandStart
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 from fastapi import HTTPException
 
-from app.config import get_settings
 from app.login_bot_config import token as login_bot_token
 from app.db import base as db_base
 from app.db.models import Staff

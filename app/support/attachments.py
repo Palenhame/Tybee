@@ -111,7 +111,7 @@ def store_bytes(data: bytes, *, kind: str, mime: str, original_name: str) -> Sto
     try:
         with os.fdopen(fd, "wb") as handle:
             handle.write(data)
-        os.chmod(tmp, 0o644)
+        os.chmod(tmp, 0o600)
         os.replace(tmp, target)
     except BaseException:
         try:
@@ -152,3 +152,15 @@ def discard(files: list[StoredFile]) -> None:
                 path.unlink()
             except OSError:
                 pass
+
+
+def secure_storage() -> None:
+    root = data_root() / "attachments"
+    if root.is_symlink() or not root.is_dir():
+        return
+    for directory, dirs, names in os.walk(root, followlinks=False):
+        dirs[:] = [name for name in dirs if not (Path(directory) / name).is_symlink()]
+        for name in names:
+            path = Path(directory) / name
+            if path.is_file() and not path.is_symlink():
+                os.chmod(path, 0o600)

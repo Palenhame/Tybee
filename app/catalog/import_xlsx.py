@@ -5,7 +5,7 @@ from __future__ import annotations
 import io
 import asyncio
 import zipfile
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 from itertools import islice
 from dataclasses import dataclass, field
 

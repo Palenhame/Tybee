@@ -16,7 +16,6 @@ from app.config import get_settings
 from app.covers.service import CoverError
 from app.db import base as db_base
 from panel import auth, login_bot, support_worker, support_events
-from app.db.models import Staff
 from urllib.parse import urlsplit
 from panel.routes import avito, broadcasts, catalog, covers, finance, invites, staff, support, login_settings, logistics, payroll, leaderboard
 

@@ -8,7 +8,6 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./db/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "psql -U ${POSTGRES_USER:-taibi} -d ${POSTGRES_DB:-taibi} -c 'SELECT 1'"]
       interval: 5s

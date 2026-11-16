@@ -75,6 +75,7 @@ def valid_result_signature(out_sum: str, inv_id: str, signature: str) -> bool:
 async def create_unban_payment(
     session: AsyncSession, user: User, *, cover_id: int | None = None, amount: int | None = None
 ) -> RobokassaPayment:
+    await session.scalar(select(User).where(User.id == user.id).with_for_update())
     existing = await session.scalar(
         select(RobokassaPayment)
         .where(
