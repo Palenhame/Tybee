@@ -38,7 +38,7 @@ type Review = {
   rating: number; order_id: number | null; comment: string | null; confirmed: boolean; created_at: string | null;
 };
 
-const currentMonth = () => new Date().toISOString().slice(0, 7);
+const currentMonth = () => new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString().slice(0, 7);
 const num = (value: number) => String(value).replace(".", ",");
 const rubToKop = (value: string) => Math.round(Number(value.replace(",", ".")) * 100);
 const kopToRub = (kop: number) => String(kop / 100).replace(".", ",");
@@ -319,7 +319,8 @@ export default function Payroll({ me }: { me: Me }) {
         Состав: фиксированный оклад + оплата за диалоги (сообщения и приёмка новых клиентов по динамической ставке)
         + премия 2,5 % с оплаченных заказов, оформленных при участии сотрудника, + 100 ₽ за подтверждённый отзыв на максимальную оценку.
         Штрафы уменьшают премию, но не ниже нуля: они уже проведены отдельными операциями в балансе.
-        Начисление создаёт операции «Зарплата» и «Премия» за месяц; повторное начисление за тот же месяц невозможно.
+        Начисление создаёт операции «Зарплата» и «Премия» за месяц. Одновременно активен только один цикл;
+        после отмены можно начислить заново — прежний расчёт и сторно сохранятся в истории.
       </p>
       {detail && <RowDetails row={detail} onClose={() => setDetail(null)} canManage={canManage} />}
       {settings && q.data && <SettingsDialog config={q.data.config} onClose={() => setSettings(false)} />}

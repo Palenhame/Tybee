@@ -211,8 +211,8 @@ function Payouts({ me }: { me: Me }) {
               </TableCell>
               <TableCell>
                 <div className="row-actions" style={{ marginTop: 0 }}>
-                  {p.status === "requested" && me.permissions.includes("finance.payouts.approve") && <><Button disabled={act.isPending} onClick={() => act.mutate({ id: p.id, action: "approve" })}>Одобрить</Button><Button className="ghost" disabled={act.isPending} onClick={() => openDecision(p, "reject")}>Отклонить</Button></>}
-                  {p.status === "approved" && me.permissions.includes("finance.payouts.pay") && <Button disabled={act.isPending} onClick={() => openDecision(p, "paid")}>Выплачено</Button>}
+                  {p.status === "requested" && p.staff_id !== me.telegram_id && me.permissions.includes("finance.payouts.approve") && <><Button disabled={act.isPending} onClick={() => act.mutate({ id: p.id, action: "approve" })}>Одобрить</Button><Button className="ghost" disabled={act.isPending} onClick={() => openDecision(p, "reject")}>Отклонить</Button></>}
+                  {p.status === "approved" && p.staff_id !== me.telegram_id && me.permissions.includes("finance.payouts.pay") && <Button disabled={act.isPending} onClick={() => openDecision(p, "paid")}>Выплачено</Button>}
                 </div>
               </TableCell>
             </TableRow>

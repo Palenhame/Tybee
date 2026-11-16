@@ -3,17 +3,19 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import Staff
+from app.db.models import Staff, SupportReview
 from app.finance import notify as fnotify
 from app.finance import payroll
 from app.finance.common import FinanceError
 from panel.audit import write_audit
 from panel.auth import csrf_guard, current_staff, require_perm
 from panel.deps import get_session
-from panel.permissions import Perm, perms_of
+from panel.permissions import Perm, manageable_roles, perms_of
+from panel.routes.finance import _target
 
 router = APIRouter(prefix="/api/finance", tags=["payroll"], dependencies=[Depends(csrf_guard)])
 
@@ -35,14 +37,23 @@ def require_any(*perms: Perm):
     return dependency
 
 
+async def _payroll_staff_ids(session: AsyncSession, me: Staff) -> list[int] | None:
+    if Perm.FINANCE_ANALYTICS in perms_of(me):
+        return None
+    roles = [role.value for role in manageable_roles(me)]
+    return list(await session.scalars(select(Staff.telegram_id).where(Staff.role.in_(roles))))
+
+
 @router.get("/payroll")
 async def payroll_report(
     period: str = Query(None, pattern=PERIOD),
-    _: Staff = Depends(require_any(Perm.FINANCE_ANALYTICS, Perm.FINANCE_BONUSES)),
+    me: Staff = Depends(require_any(Perm.FINANCE_ANALYTICS, Perm.FINANCE_BONUSES)),
     session: AsyncSession = Depends(get_session),
 ):
     try:
-        return await payroll.report(session, period or payroll.current_period())
+        return await payroll.report(
+            session, period or payroll.current_period(), await _payroll_staff_ids(session, me)
+        )
     except FinanceError as exc:
         raise _wrap(exc) from None
 
@@ -99,10 +110,13 @@ async def accrue_payroll(
     me: Staff = Depends(require_perm(Perm.FINANCE_BONUSES)),
     session: AsyncSession = Depends(get_session),
 ):
+    if body.staff_id is not None:
+        await _target(session, me, body.staff_id)
+        staff_ids = [body.staff_id]
+    else:
+        staff_ids = await _payroll_staff_ids(session, me)
     try:
-        result = await payroll.accrue(
-            session, me.telegram_id, body.period, [body.staff_id] if body.staff_id else None
-        )
+        result = await payroll.accrue(session, me.telegram_id, body.period, staff_ids)
     except FinanceError as exc:
         raise _wrap(exc) from None
     except IntegrityError:
@@ -137,6 +151,7 @@ async def cancel_payroll(
     me: Staff = Depends(require_perm(Perm.FINANCE_BONUSES)),
     session: AsyncSession = Depends(get_session),
 ):
+    await _target(session, me, staff_id)
     try:
         result = await payroll.cancel(session, me.telegram_id, staff_id, body.period)
     except FinanceError as exc:
@@ -151,11 +166,13 @@ async def cancel_payroll(
 async def list_reviews(
     period: str = Query(None, pattern=PERIOD),
     staff_id: int | None = None,
-    _: Staff = Depends(require_any(Perm.FINANCE_ANALYTICS, Perm.FINANCE_BONUSES)),
+    me: Staff = Depends(require_any(Perm.FINANCE_ANALYTICS, Perm.FINANCE_BONUSES)),
     session: AsyncSession = Depends(get_session),
 ):
     try:
-        return await payroll.list_reviews(session, period, staff_id)
+        return await payroll.list_reviews(
+            session, period, staff_id, await _payroll_staff_ids(session, me)
+        )
     except FinanceError as exc:
         raise _wrap(exc) from None
 
@@ -174,6 +191,7 @@ async def add_review(
     me: Staff = Depends(require_perm(Perm.FINANCE_BONUSES)),
     session: AsyncSession = Depends(get_session),
 ):
+    await _target(session, me, body.staff_id)
     try:
         review = await payroll.add_review(
             session, me.telegram_id, staff_id=body.staff_id, source=body.source,
@@ -195,6 +213,10 @@ async def remove_review(
     me: Staff = Depends(require_perm(Perm.FINANCE_BONUSES)),
     session: AsyncSession = Depends(get_session),
 ):
+    review = await session.get(SupportReview, review_id)
+    if review is None:
+        raise HTTPException(404, "Отзыв не найден")
+    await _target(session, me, review.staff_id)
     try:
         await payroll.delete_review(session, review_id)
     except FinanceError as exc:

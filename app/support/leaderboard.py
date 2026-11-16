@@ -114,8 +114,11 @@ async def _first_replies(
             )
         )
     ).all()
+    first_by_thread = {row.thread_id: row.id for row in first}
     last_client: dict[int, tuple[int, datetime]] = {}
     for thread_id, message_id, created_at in client_rows:
+        if message_id >= first_by_thread[thread_id]:
+            continue
         known = last_client.get(thread_id)
         if known is None or message_id > known[0]:
             last_client[thread_id] = (message_id, created_at)
@@ -123,7 +126,7 @@ async def _first_replies(
     waits: dict[int, list[float]] = defaultdict(list)
     for row in first:
         known = last_client.get(row.thread_id)
-        if known is None or known[0] > row.id or row.created_at is None:
+        if known is None or row.created_at is None:
             continue
         waits[int(row.staff_id)].append(max(0.0, ts(row.created_at) - ts(known[1])))
     return new_clients, {staff_id: median(values) for staff_id, values in waits.items()}

@@ -202,8 +202,11 @@ async def _accepted_clients(
             )
         )
     ).all()
+    first_by_thread = {row.thread_id: row.id for row in first}
     last_client: dict[int, tuple[int, datetime]] = {}
     for thread_id, message_id, created_at in client_rows:
+        if message_id >= first_by_thread[thread_id]:
+            continue
         known = last_client.get(thread_id)
         if known is None or message_id > known[0]:
             last_client[thread_id] = (message_id, created_at)
@@ -211,7 +214,7 @@ async def _accepted_clients(
     waits: list[float] = []
     for thread_id, message_id, created_at in first:
         known = last_client.get(thread_id)
-        if known is None or known[0] > message_id or created_at is None:
+        if known is None or created_at is None:
             continue
         waits.append(max(0.0, (_awake(created_at) - _awake(known[1])).total_seconds()))
     return len(first), (median(waits) if waits else None)
@@ -364,13 +367,12 @@ async def compute(session: AsyncSession, staff: Staff, period: str, config: dict
     }
 
 
-async def report(session: AsyncSession, period: str) -> dict[str, Any]:
+async def report(session: AsyncSession, period: str, staff_ids: list[int] | None = None) -> dict[str, Any]:
     config = await get_config(session)
-    staff = list(
-        await session.scalars(
-            select(Staff).where(Staff.is_active.is_(True), Staff.role.in_(SUPPORT_ROLES)).order_by(Staff.display_name)
-        )
-    )
+    stmt = select(Staff).where(Staff.is_active.is_(True), Staff.role.in_(SUPPORT_ROLES))
+    if staff_ids is not None:
+        stmt = stmt.where(Staff.telegram_id.in_(staff_ids))
+    staff = list(await session.scalars(stmt.order_by(Staff.display_name)))
     rows = [await compute(session, member, period, config) for member in staff]
     # Members without money and without support activity are noise in a payroll table.
     rows = [row for row in rows if row["total_kop"] or row["messages_count"] or row["orders_count"]]
@@ -423,7 +425,7 @@ async def accrue(session: AsyncSession, actor_id: int, period: str, staff_ids: l
     period_range(period)  # validate before touching anything
     config = await get_config(session)
     stmt = select(Staff).where(Staff.is_active.is_(True), Staff.role.in_(SUPPORT_ROLES))
-    if staff_ids:
+    if staff_ids is not None:
         stmt = stmt.where(Staff.telegram_id.in_(staff_ids))
     created: list[dict[str, Any]] = []
     skipped: list[dict[str, Any]] = []
@@ -505,8 +507,12 @@ async def cancel(session: AsyncSession, actor_id: int, staff_id: int, period: st
 
 
 # ----------------------------------------------------------------------- reviews
-async def list_reviews(session: AsyncSession, period: str | None, staff_id: int | None) -> list[dict[str, Any]]:
+async def list_reviews(
+    session: AsyncSession, period: str | None, staff_id: int | None, staff_ids: list[int] | None = None
+) -> list[dict[str, Any]]:
     stmt = select(SupportReview).order_by(SupportReview.id.desc()).limit(200)
+    if staff_ids is not None:
+        stmt = stmt.where(SupportReview.staff_id.in_(staff_ids))
     if staff_id:
         stmt = stmt.where(SupportReview.staff_id == staff_id)
     if period:
