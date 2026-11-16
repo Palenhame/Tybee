@@ -11,8 +11,12 @@ class Settings(BaseSettings):
 
     # Used ONLY to create covers/default/config.yaml on first start; afterwards
     # every cover (including "default") takes its token from its config.yaml.
-    bot_token: str = Field(default="", validation_alias="TYBEE_BOT_TOKEN")
-    admin_ids_raw: str = Field(default="", validation_alias="TYBEE_ADMIN_IDS")
+    bot_token: str = Field(
+        default="", validation_alias=AliasChoices("TYBEE_BOT_TOKEN", "TAIBI_BOT_TOKEN", "BOT_TOKEN")
+    )
+    admin_ids_raw: str = Field(
+        default="", validation_alias=AliasChoices("TYBEE_ADMIN_IDS", "TAIBI_ADMIN_ID", "ADMIN_IDS")
+    )
 
     unban_fine_rub: int = 50
     profile_orders_limit: int = Field(default=10, ge=1)
