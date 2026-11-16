@@ -318,7 +318,10 @@ async def compute(session: AsyncSession, staff: Staff, period: str, config: dict
     fine_uncovered = max(0, fines - premium_gross)
 
     accrual = await session.scalar(
-        select(PayrollAccrual).where(PayrollAccrual.staff_id == staff.telegram_id, PayrollAccrual.period == period)
+        select(PayrollAccrual)
+        .where(PayrollAccrual.staff_id == staff.telegram_id, PayrollAccrual.period == period)
+        .order_by(PayrollAccrual.id.desc())
+        .limit(1)
     )
     return {
         "staff_id": staff.telegram_id,
@@ -429,9 +432,10 @@ async def accrue(session: AsyncSession, actor_id: int, period: str, staff_ids: l
             skipped.append({"staff_id": member.telegram_id, "name": member.display_name, "reason": "нельзя начислять самому себе"})
             continue
         existing = await session.scalar(
-            select(PayrollAccrual).where(
-                PayrollAccrual.staff_id == member.telegram_id, PayrollAccrual.period == period
-            )
+            select(PayrollAccrual)
+            .where(PayrollAccrual.staff_id == member.telegram_id, PayrollAccrual.period == period)
+            .order_by(PayrollAccrual.id.desc())
+            .limit(1)
         )
         if existing is not None and not existing.reversed:
             skipped.append({"staff_id": member.telegram_id, "name": member.display_name, "reason": "уже начислено"})
@@ -457,18 +461,19 @@ async def accrue(session: AsyncSession, actor_id: int, period: str, staff_ids: l
             session.add(bonus_op)
         await session.flush()
 
-        accrual = existing or PayrollAccrual(staff_id=member.telegram_id, period=period)
-        accrual.salary_kop = row["salary_kop"]
-        accrual.bonus_kop = row["premium_gross_kop"]
-        accrual.fine_kop = row["fine_kop"]
-        accrual.total_kop = row["total_kop"]
-        accrual.details = row
-        accrual.salary_op_id = salary_op.id if salary_op is not None else None
-        accrual.bonus_op_id = bonus_op.id if bonus_op is not None else None
-        accrual.created_by = actor_id
-        accrual.reversed = False
-        accrual.reversed_by = None
-        accrual.reversed_at = None
+        accrual = PayrollAccrual(
+            staff_id=member.telegram_id,
+            period=period,
+            cycle=(existing.cycle + 1) if existing is not None else 1,
+            salary_kop=row["salary_kop"],
+            bonus_kop=row["premium_gross_kop"],
+            fine_kop=row["fine_kop"],
+            total_kop=row["total_kop"],
+            details=row,
+            salary_op_id=salary_op.id if salary_op is not None else None,
+            bonus_op_id=bonus_op.id if bonus_op is not None else None,
+            created_by=actor_id,
+        )
         session.add(accrual)
         await session.flush()
         created.append({
@@ -480,7 +485,10 @@ async def accrue(session: AsyncSession, actor_id: int, period: str, staff_ids: l
 
 async def cancel(session: AsyncSession, actor_id: int, staff_id: int, period: str) -> dict[str, Any]:
     accrual = await session.scalar(
-        select(PayrollAccrual).where(PayrollAccrual.staff_id == staff_id, PayrollAccrual.period == period)
+        select(PayrollAccrual)
+        .where(PayrollAccrual.staff_id == staff_id, PayrollAccrual.period == period)
+        .order_by(PayrollAccrual.id.desc())
+        .limit(1)
     )
     if accrual is None:
         raise FinanceError("Начисление за этот месяц не найдено", 404)

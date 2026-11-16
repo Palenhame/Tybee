@@ -52,6 +52,10 @@ _COLUMN_PATCHES = (
     "ALTER TABLE staff ADD COLUMN IF NOT EXISTS on_shift BOOLEAN NOT NULL DEFAULT FALSE",
     "ALTER TABLE staff ADD COLUMN IF NOT EXISTS last_assigned_at TIMESTAMPTZ",
     # Stage 4 (finance). Tables come from create_all.
+    "ALTER TABLE payroll_accruals DROP CONSTRAINT IF EXISTS uq_payroll_accruals_staff_period",
+    "ALTER TABLE payroll_accruals ADD COLUMN IF NOT EXISTS cycle INTEGER NOT NULL DEFAULT 1",
+    "CREATE UNIQUE INDEX IF NOT EXISTS uq_payroll_accruals_staff_period_cycle "
+    "ON payroll_accruals(staff_id, period, cycle)",
     "ALTER TABLE staff ADD COLUMN IF NOT EXISTS payout_requisites TEXT",
     "ALTER TABLE staff ADD COLUMN IF NOT EXISTS base_salary_kop INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE orders ADD COLUMN IF NOT EXISTS paid_at TIMESTAMPTZ",

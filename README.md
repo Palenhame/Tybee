@@ -276,3 +276,17 @@ npm run dev
 ```
 
 Vite доступен на `http://localhost:5173` и проксирует `/api` на `127.0.0.1:8000`. Для проверки сборки интерфейса выполните `npm run build` в `site/frontend`. Клиентский бот работает через long polling: один и тот же токен не должен одновременно обслуживаться несколькими запущенными процессами polling.
+
+Перед отправкой изменений установите зависимости для разработки и запустите проверки:
+
+```bash
+pip install -r requirements-dev.txt -r site/requirements.txt
+python -m compileall -q app scripts site/backend
+python -m unittest discover -s tests -v
+cd site/frontend
+npm ci
+npm run build
+npm audit --audit-level=high
+```
+
+Тесты финансов используют временную SQLite-базу и не требуют запущенного PostgreSQL или токенов ботов. Миграции PostgreSQL и сквозной сценарий с реальными ботами проверяются отдельно перед выкладкой.

@@ -4,6 +4,7 @@ from __future__ import annotations
 import re
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import FinanceOperation, PayoutRequest, Staff
@@ -98,7 +99,10 @@ async def reverse(session: AsyncSession, op_id: int, actor_id: int, comment: str
     session.add(rev)
     try:
         await session.flush()  # reversal_of is unique: a concurrent second reversal fails here
-    except Exception:
+    except IntegrityError as exc:
         await session.rollback()
+        constraint = getattr(getattr(exc.orig, "diag", None), "constraint_name", None)
+        if constraint != "finance_operations_reversal_of_key":
+            raise
         raise FinanceError("Операция уже сторнирована", 409) from None
     return rev

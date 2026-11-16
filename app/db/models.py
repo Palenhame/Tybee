@@ -526,11 +526,14 @@ class PayrollAccrual(Base):
     the idempotency key and the audit trail."""
 
     __tablename__ = "payroll_accruals"
-    __table_args__ = (UniqueConstraint("staff_id", "period", name="uq_payroll_accruals_staff_period"),)
+    __table_args__ = (
+        UniqueConstraint("staff_id", "period", "cycle", name="uq_payroll_accruals_staff_period_cycle"),
+    )
 
     id: Mapped[int] = mapped_column(_PK, primary_key=True, autoincrement=True)
     staff_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("staff.telegram_id"), index=True)
     period: Mapped[str] = mapped_column(String(7))  # YYYY-MM
+    cycle: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
     salary_kop: Mapped[int] = mapped_column(BigInteger, default=0)
     bonus_kop: Mapped[int] = mapped_column(BigInteger, default=0)
     fine_kop: Mapped[int] = mapped_column(BigInteger, default=0)
