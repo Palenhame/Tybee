@@ -90,7 +90,7 @@ class DbSessionMiddleware(BaseMiddleware):
             if tg_user is not None and cover is not None:
                 user = await repo.get_or_create_user(session, tg_user)
                 data["user"] = user
-                uc = await repo.get_or_create_user_cover(session, user, cover.id)
+                uc = await repo.get_or_create_user_cover(session, user, self.cover_id)
                 uc.last_seen_at = datetime.now(timezone.utc)
                 data["uc"] = uc
             try:

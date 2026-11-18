@@ -33,11 +33,10 @@ async def get_or_create_user(session: AsyncSession, tg_user: TgUser) -> User:
             username=tg_user.username,
             full_name=full_name,
         )
-        session.add(user)
         try:
-            await session.flush()
+            async with session.begin_nested():
+                session.add(user)
         except IntegrityError:
-            await session.rollback()
             user = await session.get(User, tg_user.id)
             if user is None:
                 raise
@@ -64,11 +63,10 @@ async def get_or_create_user_cover(
     uc = await session.get(UserCover, (user.id, cover_id))
     if uc is None:
         uc = UserCover(user_id=user.id, cover_id=cover_id, state=UserState.MENU.value)
-        session.add(uc)
         try:
-            await session.flush()
+            async with session.begin_nested():
+                session.add(uc)
         except IntegrityError:
-            await session.rollback()
             uc = await session.get(UserCover, (user.id, cover_id))
             if uc is None:
                 raise
